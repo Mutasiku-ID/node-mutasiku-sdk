@@ -1,0 +1,33 @@
+{
+  "name": "mutasiku-sdk",
+  "version": "1.0.0",
+  "description": "Mutasiku JavaScript SDK for interacting with the Mutasiku API to manage financial accounts and track transactions for Indonesian payment providers like DANA, OVO, GOPAY MERCHANT and etc",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "mutasiku",
+    "dana api",
+    "ovo api",
+    "gopay merchant api"
+  ],
+  "author": "Septian992",
+  "license": "MIT",
+  "types": "index.d.ts",
+  "dependencies": {
+    "axios": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "typescript": "^5.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mutasiku-ID/node-mutasiku-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Mutasiku-ID/node-mutasiku-sdk/issues"
+  },
+  "homepage": "https://github.com/Mutasiku-ID/node-mutasiku-sdk#readme"
+}
