@@ -1,5 +1,5 @@
 // index.js
-const axios = require('axios');
+import axios from 'axios';
 
 class MutasikuSDK {
   constructor(options = {}) {
@@ -206,4 +206,4 @@ class MutasikuSDK {
   }
 }
 
-module.exports = MutasikuSDK;
+export default MutasikuSDK;
