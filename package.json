@@ -1,6 +1,6 @@
 {
   "name": "mutasiku-sdk",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Mutasiku JavaScript SDK for interacting with the Mutasiku API to manage financial accounts and track transactions for Indonesian payment providers like DANA, OVO, GOPAY MERCHANT and etc",
   "main": "index.js",
   "scripts": {
