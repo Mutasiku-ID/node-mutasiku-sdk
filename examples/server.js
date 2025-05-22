@@ -1,5 +1,5 @@
 // server.js
-const MutasikuSDK = require('mutasiku-sdk');
+import MutasikuSDK from 'mutasiku-sdk';
 
 // Initialize the SDK with your API key
 const sdk = new MutasikuSDK({
@@ -89,5 +89,57 @@ async function testDanaAccount() {
     }
 }
 
+async function testGetDanaBanks() {
+    // Get available banks for DANA transfer
+    const banks = await sdk.getDanaBanks('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    if (banks.success) {
+        console.log('Available banks:', banks.data);
+    }
+}
+
+async function testTransferDanaQris() {
+    // From file input
+    const fileInput = document.getElementById('qr-upload');
+    const file = fileInput.files[0];
+
+    const result = await sdk.payDanaQris('xxxxxxxxxxxxxxxxxxxxxxxxxxxx', file, 25000);
+    if (result.success) {
+        console.log('Payment successful');
+    } else {
+        console.error('Transfer QRIS initialization failed:', result.message || result.error);
+    }
+}
+
+
+async function testTransferDanaBankInit() {
+  // Check account name before transfer
+  const initResult = await sdk.transferDanaBankInit('xxxxxxxxxxxxxxxxxxxxxxxxxxxx', {
+    accountNumber: 'xxxxxxxxx',
+    amount: 20000,
+    instId: 'xxxxxxx',
+    instLocalName: 'xxx',
+    payMethod: 'xxxxxxxxxxx',
+    payOption: 'xxxxxxxxxxx'
+  });
+  
+  if (initResult.success) {
+      console.log('Account verified:', initResult.data.accountName);
+      
+      // Step 2: Confirm transfer (you'll need the bankAccountIndexNo from init response)
+      const confirmResult = await sdk.transferDanaBankCreate('xxxxxxxxxxxxxxxxxxxxxxxxxxxx', {
+          amount: 20000,
+          bankAccountIndexNo: initResult.data.bankAccountIndexNo // From init response
+      });
+      
+      if (confirmResult.success) {
+          console.log('Transfer completed successfully!');
+      } else {
+          console.error('Transfer confirmation failed:', confirmResult.message);
+      }
+  } else {
+      console.error('Transfer initialization failed:', initResult.message);
+  }
+}
+
 // Run the tests
-testDanaAccount();
+testTransferDanaBankInit();

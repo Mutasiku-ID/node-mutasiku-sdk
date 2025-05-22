@@ -14,7 +14,7 @@ class MutasikuSDK {
   }
 
   // Core API request method
-  async makeApiRequest(endpoint, data = null, method = 'POST') {
+  async makeApiRequest(endpoint, data = null, method = 'POST', isFormData = false) {
     try {
       const url = `${this.apiBaseUrl}${endpoint}`;
       
@@ -22,10 +22,15 @@ class MutasikuSDK {
         method,
         url,
         headers: {
-          'Content-Type': 'application/json',
           'x-api-key': this.apiKey
         }
       };
+
+      // Set content type based on data type
+      if (!isFormData) {
+        config.headers['Content-Type'] = 'application/json';
+      }
+      // For FormData, don't set Content-Type - let axios handle it
       
       if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
         config.data = data;
@@ -203,6 +208,173 @@ class MutasikuSDK {
     }
     
     return this.makeApiRequest('/api/v1/accounts', payload);
+  }
+
+  /**
+   * Get available bank options for DANA transfer
+   * @param {string} accountId - DANA account ID
+   * @returns {Promise} API response with bank options
+   */
+  async getDanaBanks(accountId) {
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'Account ID is required'
+      };
+    }
+
+    const payload = {
+      action: 'dana-bank-list'
+    };
+
+    return this.makeApiRequest(`/api/v1/accounts/${accountId}/transfer`, payload);
+  }
+
+  /**
+   * Upload QR code for DANA QRIS payment
+   * @param {string} accountId - DANA account ID
+   * @param {File|Blob} qrImage - QR code image file
+   * @param {number} amount - Payment amount
+   * @returns {Promise} API response with transfer result
+   */
+  async transferDanaQris(accountId, qrImage, amount) {
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'Account ID is required'
+      };
+    }
+
+    if (!qrImage) {
+      return {
+        success: false,
+        message: 'QR image is required'
+      };
+    }
+
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return {
+        success: false,
+        message: 'Valid amount is required'
+      };
+    }
+
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('action', 'dana-qris-create');
+    formData.append('qrImage', qrImage);
+    formData.append('amount', amount.toString());
+
+    return this.makeApiRequest(`/api/v1/accounts/${accountId}/transfer`, formData, 'POST', true);
+  }
+
+  /**
+   * Initialize DANA bank transfer (check account name)
+   * @param {string} accountId - DANA account ID
+   * @param {Object} transferData - Transfer details
+   * @param {string} transferData.accountNumber - Destination bank account number
+   * @param {number} transferData.amount - Transfer amount
+   * @param {string} transferData.instId - Bank institution ID
+   * @param {string} transferData.instLocalName - Bank local name
+   * @param {string} transferData.payMethod - Payment method
+   * @param {string} transferData.payOption - Payment option
+   * @returns {Promise} API response with account name verification
+   */
+  async transferDanaBankInit(accountId, transferData) {
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'Account ID is required'
+      };
+    }
+
+    // Validation
+    const requiredFields = ['accountNumber', 'amount', 'instId', 'instLocalName', 'payMethod', 'payOption'];
+    const missingFields = requiredFields.filter(field => !transferData[field]);
+    
+    if (missingFields.length > 0) {
+      return {
+        success: false,
+        message: `Required fields missing: ${missingFields.join(', ')}`
+      };
+    }
+
+    // Amount validation
+    if (typeof transferData.amount !== 'number' || transferData.amount <= 0) {
+      return {
+        success: false,
+        message: 'Amount must be a positive number'
+      };
+    }
+
+    if (transferData.amount < 10000) {
+      return {
+        success: false,
+        message: 'Minimum transfer amount is Rp 10,000'
+      };
+    }
+
+    const payload = {
+      action: 'dana-bank-init',
+      accountNumber: transferData.accountNumber,
+      amount: transferData.amount,
+      instId: transferData.instId,
+      instLocalName: transferData.instLocalName,
+      payMethod: transferData.payMethod,
+      payOption: transferData.payOption
+    };
+
+    return this.makeApiRequest(`/api/v1/accounts/${accountId}/transfer`, payload);
+  }
+
+   /**
+   * Confirm DANA bank transfer flow (get banks -> init -> confirm)
+   * @param {string} accountId - DANA account ID
+   * @param {number} transferData.amount - Transfer amount
+   * @param {Object} transferData.bankAccountIndexNo - Bank Account Index No
+   * @returns {Promise} API response with transfer confirmation
+   */
+   async transferDanaBankCreate(accountId, transferData) {
+    if (!accountId) {
+      return {
+        success: false,
+        message: 'Account ID is required'
+      };
+    }
+
+    // Validation
+    const requiredFields = ['amount', 'bankAccountIndexNo'];
+    const missingFields = requiredFields.filter(field => !transferData[field]);
+    
+    if (missingFields.length > 0) {
+      return {
+        success: false,
+        message: `Required fields missing: ${missingFields.join(', ')}`
+      };
+    }
+
+    // Amount validation
+    if (typeof transferData.amount !== 'number' || transferData.amount <= 0) {
+      return {
+        success: false,
+        message: 'Amount must be a positive number'
+      };
+    }
+
+    if (transferData.amount < 10000) {
+      return {
+        success: false,
+        message: 'Minimum transfer amount is Rp 10,000'
+      };
+    }
+
+    const payload = {
+      action: 'dana-bank-create',
+      amount: transferData.amount,
+      bankAccountIndexNo: transferData.bankAccountIndexNo
+    };
+
+    return this.makeApiRequest(`/api/v1/accounts/${accountId}/transfer`, payload);
   }
 }
 

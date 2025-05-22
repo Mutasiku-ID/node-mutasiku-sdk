@@ -1,4 +1,4 @@
-# MutasikuSDK
+# Mutasiku SDK
 
 Mutasiku JavaScript SDK for interacting with the Mutasiku API to manage financial accounts and track transactions for Indonesian payment providers like DANA, OVO, GOPAY MERCHANT and etc.
 
@@ -97,6 +97,74 @@ if (addDanaResult.success) {
 }
 ```
 
+### DANA Transfer Features
+
+#### Get Available Banks for DANA Transfer
+
+```javascript
+const banks = await mutasiku.getDanaBanks('dana-account-id');
+if (banks.success) {
+  console.log('Available banks:', banks.data);
+  // Returns list of supported banks with their details
+}
+```
+
+#### DANA QRIS Payment
+
+Upload a QR code image to make QRIS payments through DANA:
+
+```javascript
+// For browser usage with file input
+const fileInput = document.getElementById('qr-upload');
+const file = fileInput.files[0];
+
+const result = await mutasiku.transferDanaQris('dana-account-id', file, 25000);
+if (result.success) {
+  console.log('QRIS payment successful');
+} else {
+  console.error('QRIS payment failed:', result.message);
+}
+```
+
+#### DANA Bank Transfer
+
+Transfer money from DANA to bank accounts using a two-step process:
+
+**Step 1: Initialize Transfer (Check Account Name)**
+
+```javascript
+const initResult = await mutasiku.transferDanaBankInit('dana-account-id', {
+  accountNumber: '1234567890',
+  amount: 10000,
+  instId: 'BCAC1ID',
+  instLocalName: 'BCA',
+  payMethod: 'WITHDRAW_BANKCARD',
+  payOption: 'WITHDRAW_BANKCARD_BCA'
+});
+
+if (initResult.success) {
+  console.log('Account verified:', initResult.data.accountName);
+  console.log('Bank Account Index:', initResult.data.bankAccountIndexNo);
+}
+```
+
+**Step 2: Confirm Transfer**
+
+```javascript
+if (initResult.success) {
+  const confirmResult = await mutasiku.transferDanaBankCreate('dana-account-id', {
+    amount: 10000,
+    bankAccountIndexNo: initResult.data.bankAccountIndexNo // From init response
+  });
+  
+  if (confirmResult.success) {
+    console.log('Transfer completed successfully!');
+  } else {
+    console.error('Transfer failed:', confirmResult.message);
+  }
+}
+```
+
 ### Get Transaction History (Mutasi)
 
 ```javascript
@@ -130,12 +198,51 @@ const customTransactions = await mutasiku.getMutasi({
 
 ### Available Methods
 
+#### Account Management
 - `getAccounts(options)` - Get all accounts with optional filters
 - `getAccountById(accountId)` - Get a specific account by ID
 - `removeAccount(accountId)` - Remove an account
-- `getMutasi(options)` - Get transaction history with filters
 - `addAccount(data)` - Add a new account (OVO, DANA, etc.)
 - `verifyAccount(data)` - Verify account with OTP
+
+#### Transaction History
+- `getMutasi(options)` - Get transaction history with filters
+
+#### DANA Transfer Methods
+- `getDanaBanks(accountId)` - Get available banks for DANA transfer
+- `transferDanaQris(accountId, qrImage, amount)` - Make QRIS payment using QR code image
+- `transferDanaBankInit(accountId, transferData)` - Initialize bank transfer and verify account name
+- `transferDanaBankCreate(accountId, transferData)` - Confirm and execute bank transfer
+
+### DANA Transfer Parameters
+
+#### `transferDanaBankInit` Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| accountId | string | Yes | DANA account ID |
+| transferData.accountNumber | string | Yes | Destination bank account number |
+| transferData.amount | number | Yes | Transfer amount (minimum Rp 10,000) |
+| transferData.instId | string | Yes | Bank institution ID |
+| transferData.instLocalName | string | Yes | Bank local name |
+| transferData.payMethod | string | Yes | Payment method |
+| transferData.payOption | string | Yes | Payment option |
+
+#### `transferDanaBankCreate` Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| accountId | string | Yes | DANA account ID |
+| transferData.amount | number | Yes | Transfer amount |
+| transferData.bankAccountIndexNo | string | Yes | Bank account index from init response |
+
+#### `transferDanaQris` Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| accountId | string | Yes | DANA account ID |
+| qrImage | File/Blob | Yes | QR code image file |
+| amount | number | Yes | Payment amount |
 
 ## Error Handling
 
@@ -148,6 +255,41 @@ All API methods return a response object with the following structure:
   message: 'Human readable message',
   data: { /* response data */ },
   error: { /* error details if any */ }
+}
+```
+
+## Common Use Cases
+
+### Complete DANA Bank Transfer Flow
+
+```javascript
+async function performDanaTransfer() {
+  // 1. Get available banks
+  const banks = await mutasiku.getDanaBanks('your-dana-account-id');
+  
+  // 2. Initialize transfer to verify account
+  const initResult = await mutasiku.transferDanaBankInit('your-dana-account-id', {
+    accountNumber: '1234567890',
+    amount: 10000,
+    instId: 'BCAC1ID',
+    instLocalName: 'BCA',
+    payMethod: 'WITHDRAW_BANKCARD',
+    payOption: 'WITHDRAW_BANKCARD_BCA'
+  });
+  
+  if (initResult.success) {
+    console.log(`Transferring to: ${initResult.data.accountName}`);
+    
+    // 3. Confirm transfer
+    const result = await mutasiku.transferDanaBankCreate('your-dana-account-id', {
+      amount: 10000,
+      bankAccountIndexNo: initResult.data.bankAccountIndexNo
+    });
+    
+    if (result.success) {
+      console.log('Transfer successful!');
+    }
+  }
 }
 ```
 
